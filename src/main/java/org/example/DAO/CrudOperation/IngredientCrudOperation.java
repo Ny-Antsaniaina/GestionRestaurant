@@ -86,19 +86,22 @@ public class IngredientCrudOperation implements CrudOperation<Ingredient> {
     }
 
 
-    public List<Ingredient> getFitersIngredientPrice(List<Filter> filters , String sortBy , String sortOrder , int page, int pageSize) {
+    public List<Ingredient> getFitersIngredient(List<Filter> filters , String sortBy , String sortOrder , int page, int pageSize) {
         List<Ingredient> listIngredients = new ArrayList<>();
         StringBuilder sql = new StringBuilder("Select id , name , unit from ingredient Where 1=1");
 
         for (Filter filter : filters) {
             if (filter.getOperator().equals("BETWEEN")) {
                 sql.append(" AND ").append(filter.getColumn()).append(" BETWEEN ? AND ?");
-            }else {
+            }else if (filter.getOperator().equals("LIKE") || filter.getOperator().equals("ILIKE")) {
+                sql.append(" AND ").append(filter.getColumn()).append(" ILIKE ?");
+            }
+            else {
                 sql.append(" AND ").append(filter.getColumn()).append("").append(filter.getOperator()).append("?");
             }
 
-            if (sortBy != null) {
-                sql.append("ORDER BY").append(sortBy).append(" ").append((sortOrder != null ? sortOrder : "ASC"));
+            if (sortBy != null && !sortBy.isEmpty()) {
+                sql.append(" ORDER BY ").append(sortBy).append(" ").append((sortOrder != null ? sortOrder : " ASC "));
             }
 
             sql.append(" LIMIT ? OFFSET ?");
@@ -110,7 +113,10 @@ public class IngredientCrudOperation implements CrudOperation<Ingredient> {
                     if (filter.getOperator().equals("BETWEEN")) {
                         statement.setObject(i++,f.getValueIntervalMin());
                         statement.setObject(i++,f.getValueIntervalMax());
-                    }else {
+                    }else if(filter.getOperator().equals("LIKE") || filter.getOperator().equals("ILIKE")) {
+                        statement.setObject(i++,"%" + f.getValueIntervalMin() + "%");
+                    }
+                    else {
                         statement.setObject(i++,f.getValueIntervalMin());
                     }
 
