@@ -29,10 +29,9 @@ public class Dish {
     }
 
     public double getIngredientsCost() {
-        double cost = 0.0;
-        for (DishIngredient di : this.ingredients) {
-            cost += di.getIngredient().getUnitePrice() * di.getRequiredQuantity();
-        }
-        return cost;
+        return ingredients.stream()
+                .mapToDouble(di -> di.getIngredient().getUnitePrice() * di.getRequiredQuantity())
+                .sum();
     }
+
 }

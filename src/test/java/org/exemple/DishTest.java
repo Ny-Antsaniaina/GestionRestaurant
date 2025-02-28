@@ -35,7 +35,11 @@ public class DishTest {
         DishIngredient dishIngredient4 = new DishIngredient(dish,pain,1,Unity.U);
 
         dish.setIngredients(Arrays.asList(dishIngredient1,dishIngredient2,dishIngredient3,dishIngredient4));
-        assertEquals(5500 , dish.getIngredientsCost(),0.01);
+        int expected = 5500;
+        double actual = dish.getIngredientsCost();
+        System.out.println(expected);
+        System.out.println(actual);
+        assertEquals(expected , actual ,0.01);
 
     }
 
@@ -57,6 +61,15 @@ public class DishTest {
         assertEquals(expected, dishes);
     }
 
+    @Test
+    public void create_update_test(){
+        List<Dish> expected = List.of(DishHotDog());
+        List<Dish> actual = subject.saveAll(expected);
+        System.out.println(actual);
+        assertEquals(actual.containsAll(expected) ,true);
+    }
+
+
     private Dish DishHotDog(){
         Dish dish = new Dish();
         dish.setId(1);
@@ -64,4 +77,6 @@ public class DishTest {
         dish.setUnitPrice(15000);
         return dish;
     }
+
+
 }

@@ -60,15 +60,15 @@ public class Main {
 //            newDish.setName("oeuf dur");
 //            newDish.setUnitPrice(1200);
 //
-//            List<Dish> createdDishes = dishDAO.saveAndUpdate(List.of(newDish));
+//            List<Dish> createdDishes = dishDAO.saveAll(List.of(newDish));
 //            logger.info("Dishes created: " + createdDishes.size() + " dishes" + createdDishes);
 //
 //            newDish.setName("akoho");
 //            List<Dish> updatedDishes = dishDAO.saveAndUpdate(List.of(newDish));
 //            logger.info("Dishes updated: " + updatedDishes.size() + " dishes" + updatedDishes);
 
-            dishCrudOperation.deleteById(3);
-           logger.info("Deleted id : 3");
+//            dishCrudOperation.deleteById(3);
+//           logger.info("Deleted id : 3");
 
 
         }catch (SQLException e){

@@ -9,18 +9,18 @@ import lombok.ToString;
 @Setter
 @ToString
 @EqualsAndHashCode
-public class Filter {
+public class Criteria {
     private String column;
     private Object valueIntervalMin;
     private Object valueIntervalMax;
     private String operator;
 
-    public Filter(String column, Object value,  String operator) {
+    public Criteria(String column, Object value, String operator) {
         this.column = column;
         this.valueIntervalMin = value;
         this.operator = operator;
     }
-    public Filter(String column, Object valueIntervalMin, Object valueIntervalMax) {
+    public Criteria(String column, Object valueIntervalMin, Object valueIntervalMax) {
         this.column = column;
         this.valueIntervalMin = valueIntervalMin;
         this.valueIntervalMax = valueIntervalMax;

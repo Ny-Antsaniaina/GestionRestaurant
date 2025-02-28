@@ -1,34 +1,31 @@
 package org.example.DAO.CrudOperation;
 
-import org.example.DAO.Mapper.EnumMapper;
 import org.example.DataBase.ConnectionDataBase;
 import org.example.Entity.Ingredient;
 import org.example.Entity.IngredientPrice;
 import org.example.Entity.Unity;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class IngredientCrudOperation implements CrudOperation<Ingredient> {
     ConnectionDataBase dataSource = new ConnectionDataBase();
+
     @Override
-    public List<Ingredient> findAll(int page, int pageSize)  {
-        String sql = "SELECT id , name , unit FROM ingredient LIMIT ? OFFSET ?";
-        
-        if (page < 0){
+    public List<Ingredient> findAll(int page, int pageSize) {
+        String sql = "SELECT id , name , unit FROM ingredient ORDER by id LIMIT ? OFFSET ?";
+
+        if (page < 0) {
             throw new IllegalArgumentException("page cannot be less than zero");
-        }else {
+        } else {
             List<Ingredient> list = new ArrayList<>();
-            try(Connection connection = dataSource.getConnection();
-            PreparedStatement statement = connection.prepareStatement(sql);){
-                statement.setInt(1,pageSize);
-                statement.setInt(2,pageSize * (page - 1));
-                try(ResultSet resultSet = statement.executeQuery();){
-                    while (resultSet.next()){
+            try (Connection connection = dataSource.getConnection();
+                 PreparedStatement statement = connection.prepareStatement(sql);) {
+                statement.setInt(1, pageSize);
+                statement.setInt(2, pageSize * (page - 1));
+                try (ResultSet resultSet = statement.executeQuery();) {
+                    while (resultSet.next()) {
                         IngredientPrice ingredientPrice = getIngredientPrice(resultSet.getInt("id"));
                         Ingredient ingredient = new Ingredient();
                         ingredient.setId(resultSet.getInt("id"));
@@ -52,11 +49,11 @@ public class IngredientCrudOperation implements CrudOperation<Ingredient> {
     @Override
     public Ingredient findById(int id) {
         String sql = "SELECT id , name , unit FROM ingredient WHERE id = ?";
-        try(Connection connection = dataSource.getConnection();
-        PreparedStatement statement = connection.prepareStatement(sql)){
-            statement.setInt(1,id);
-            try(ResultSet rs = statement.executeQuery()){
-                if (rs.next()){
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, id);
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
                     IngredientPrice ingredientPrice = getIngredientPrice(rs.getInt("id"));
                     Ingredient ingredient = new Ingredient();
                     ingredient.setId(rs.getInt("id"));
@@ -76,81 +73,120 @@ public class IngredientCrudOperation implements CrudOperation<Ingredient> {
 
 
     @Override
-    public List<Ingredient> saveAndUpdate(List<Ingredient> list) {
-        return List.of();
-    }
+    public List<Ingredient> saveAll(List<Ingredient> list) {
+        List<Ingredient> ingredients = new ArrayList<>();
+        String ingredientSql = "INSERT INTO ingredient (id, name, unit) VALUES (?, ?, ?::unit_enum) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, unit = EXCLUDED.unit";
+        String priceSql = "INSERT INTO ingredient_price_history (id, ingredient_id , price, date) VALUES (?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET price = EXCLUDED.price, date = EXCLUDED.date";
 
-    @Override
-    public void deleteById(int id) {
-
-    }
-
-
-    public List<Ingredient> getFitersIngredient(List<Filter> filters , String sortBy , String sortOrder , int page, int pageSize) {
-        List<Ingredient> listIngredients = new ArrayList<>();
-        StringBuilder sql = new StringBuilder("Select id , name , unit from ingredient Where 1=1");
-
-        for (Filter filter : filters) {
-            if (filter.getOperator().equals("BETWEEN")) {
-                sql.append(" AND ").append(filter.getColumn()).append(" BETWEEN ? AND ?");
-            }else if (filter.getOperator().equals("LIKE") || filter.getOperator().equals("ILIKE")) {
-                sql.append(" AND ").append(filter.getColumn()).append(" ILIKE ?");
-            }
-            else {
-                sql.append(" AND ").append(filter.getColumn()).append("").append(filter.getOperator()).append("?");
-            }
-
-            if (sortBy != null && !sortBy.isEmpty()) {
-                sql.append(" ORDER BY ").append(sortBy).append(" ").append((sortOrder != null ? sortOrder : " ASC "));
-            }
-
-            sql.append(" LIMIT ? OFFSET ?");
 
             try(Connection connection = dataSource.getConnection();
-            PreparedStatement statement = connection.prepareStatement(sql.toString())){
-                int i = 1;
-                for (Filter f : filters) {
-                    if (filter.getOperator().equals("BETWEEN")) {
-                        statement.setObject(i++,f.getValueIntervalMin());
-                        statement.setObject(i++,f.getValueIntervalMax());
-                    }else if(filter.getOperator().equals("LIKE") || filter.getOperator().equals("ILIKE")) {
-                        statement.setObject(i++,"%" + f.getValueIntervalMin() + "%");
-                    }
-                    else {
-                        statement.setObject(i++,f.getValueIntervalMin());
-                    }
+                PreparedStatement ingredientStatement = connection.prepareStatement(ingredientSql);
+                PreparedStatement priceStatement = connection.prepareStatement(priceSql)){
 
-                    statement.setInt(i++,pageSize);
-                    statement.setInt(i++,pageSize*(page - 1 ));
+                for(Ingredient ingredient : list) {
+                    ingredientStatement.setInt(1, ingredient.getId());
+                    ingredientStatement.setString(2, ingredient.getName());
+                    ingredientStatement.setString(3, ingredient.getUnity().toString());
+                    ingredientStatement.executeUpdate();
 
-                    try(ResultSet resultSet = statement.executeQuery()){
-                        while (resultSet.next()){
-                            IngredientPrice ingredientPrice = getIngredientPrice(resultSet.getInt("id"));
-                            Ingredient ingredient = new Ingredient();
-                            ingredient.setId(resultSet.getInt("id"));
-                            ingredient.setName(resultSet.getString("name"));
-                            ingredient.setLastModifier(ingredientPrice.getDate());
-                            ingredient.setUnitePrice(ingredientPrice.getUnitPrice());
-                            ingredient.setUnity(Unity.valueOf(resultSet.getString("unit")));
-                            listIngredients.add(ingredient);
-                        }
-                    }
+                    priceStatement.setInt(1, getPriceID(ingredient.getId()));
+                    priceStatement.setInt(2, ingredient.getId());
+                    priceStatement.setDouble(3, ingredient.getUnitePrice());
+                    priceStatement.setTimestamp(4, Timestamp.valueOf(ingredient.getLastModifier()));
+                    priceStatement.executeUpdate();
+                    Ingredient ingredientToDB = findById(ingredient.getId());
+                    ingredients.add(ingredientToDB);
                 }
+
             } catch (SQLException e) {
                 throw new RuntimeException(e);
             }
+        return ingredients;
+    }
+
+    
+
+    @Override
+    public void deleteById(int id) {
+        String sql = "DELETE FROM ingredient WHERE id = ?";
+        try (Connection connection =dataSource.getConnection();
+        PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, id);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
+    }
+
+
+    public List<Ingredient> getFitersIngredient(List<Criteria> criteria, String sortBy, String sortOrder, int page, int pageSize) {
+        List<Ingredient> listIngredients = new ArrayList<>();
+        StringBuilder sql = new StringBuilder("SELECT id, name, unit FROM ingredient WHERE 1=1");
+
+        for (Criteria c : criteria) {
+            if ("BETWEEN".equals(c.getOperator())) {
+                sql.append(" AND ").append(c.getColumn()).append(" BETWEEN ? AND ?");
+            } else if ("LIKE".equals(c.getOperator()) || "ILIKE".equals(c.getOperator())) {
+                sql.append(" AND ").append(c.getColumn()).append(" ILIKE ?");
+            } else {
+                sql.append(" AND ").append(c.getColumn()).append(" ").append(c.getOperator()).append(" ?");
+            }
+        }
+
+
+        if (sortBy != null && !sortBy.isEmpty()) {
+            sql.append(" ORDER BY ").append(sortBy).append(" ").append((sortOrder != null ? sortOrder : "ASC"));
+        }
+
+
+        sql.append(" LIMIT ? OFFSET ?");
+
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql.toString())) {
+            int i = 1;
+
+
+            for (Criteria c : criteria) {
+                if ("BETWEEN".equals(c.getOperator())) {
+                    statement.setObject(i++, c.getValueIntervalMin());
+                    statement.setObject(i++, c.getValueIntervalMax());
+                } else if ("LIKE".equals(c.getOperator()) || "ILIKE".equals(c.getOperator())) {
+                    statement.setString(i++, "%" + c.getValueIntervalMin() + "%");
+                } else {
+                    statement.setObject(i++, c.getValueIntervalMin());
+                }
+            }
+
+            statement.setInt(i++, pageSize);
+            statement.setInt(i++, pageSize * (page - 1));
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    IngredientPrice ingredientPrice = getIngredientPrice(resultSet.getInt("id"));
+                    Ingredient ingredient = new Ingredient();
+                    ingredient.setId(resultSet.getInt("id"));
+                    ingredient.setName(resultSet.getString("name"));
+                    ingredient.setLastModifier(ingredientPrice.getDate());
+                    ingredient.setUnitePrice(ingredientPrice.getUnitPrice());
+                    ingredient.setUnity(Unity.valueOf(resultSet.getString("unit")));
+                    listIngredients.add(ingredient);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
         return listIngredients;
     }
 
     public IngredientPrice getIngredientPrice(int id) {
         String sql = "SELECT price , date FROM ingredient_price_history WHERE id = ?";
 
-        try(Connection connection = dataSource.getConnection();
-            PreparedStatement statement = connection.prepareStatement(sql)){
-            statement.setInt(1,id);
-            try(ResultSet rs = statement.executeQuery()){
-                if (rs.next()){
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, id);
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
                     IngredientPrice ingredientPrice = new IngredientPrice();
                     ingredientPrice.setUnitPrice(rs.getInt("price"));
                     ingredientPrice.setDate(rs.getTimestamp("date").toLocalDateTime());
@@ -165,20 +201,22 @@ public class IngredientCrudOperation implements CrudOperation<Ingredient> {
         return null;
     }
 
-    public int getPriceID(int id) {
-        String sql = "SELECT id FROM ingredient_price WHERE id = ?";
-        try(Connection connection = dataSource.getConnection();
-        PreparedStatement statement = connection.prepareStatement(sql)){
-            statement.setInt(1,id);
-            try(ResultSet resultSet = statement.executeQuery()){
-                if (resultSet.next()){
-                    id = resultSet.getInt("id");
+    public Integer getPriceID(int ingredient_id) {
+        String sql = "SELECT id FROM ingredient_price_history WHERE ingredient_id = ?";
+        Integer id = null;
 
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, ingredient_id);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    id = resultSet.getInt("id");
                 }
-                return id;
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+        return id;
     }
 }

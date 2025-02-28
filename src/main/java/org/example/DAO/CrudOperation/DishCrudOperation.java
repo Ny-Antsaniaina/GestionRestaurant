@@ -70,10 +70,10 @@ public class DishCrudOperation implements CrudOperation<Dish> {
     }
 
     @Override
-    public List<Dish> saveAndUpdate(List<Dish> dishes) {
+    public List<Dish> saveAll(List<Dish> dishes) {
         List<Dish> list = new ArrayList<>();
 
-        String sql = "insert into dish (name,sale_price) values (?,?) on conflict (id) do update set name = EXCLUDED.name,sale_price = EXCLUDED.sale_price";
+        String sql = "insert into dish (name,sale_price) values (?,?) on conflict (name) do update set name = EXCLUDED.name,sale_price = EXCLUDED.sale_price";
 
         try(Connection connection = dataSource.getConnection()){
             logger.info("Executing query" + sql);
@@ -127,7 +127,7 @@ public class DishCrudOperation implements CrudOperation<Dish> {
                 Ingredient ingredient = new Ingredient(
                         ingredientResultSet.getInt("ingredient_id"),
                         ingredientResultSet.getString("name"),
-                        null, // lastModifier à null car non récupéré
+                        null,
                         ingredientResultSet.getDouble("unit_price"),
                         EnumMapper.topicmaper(ingredientResultSet.getString("unit"))
                 );
