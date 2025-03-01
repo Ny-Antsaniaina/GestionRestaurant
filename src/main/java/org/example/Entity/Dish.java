@@ -28,10 +28,24 @@ public class Dish {
         this.ingredients = new ArrayList<>();
     }
 
-    public double getIngredientsCost() {
-        return ingredients.stream()
-                .mapToDouble(di -> di.getIngredient().getUnitePrice() * di.getRequiredQuantity())
+    public double getIngredientsPriceTotal() {
+         return getIngredients().stream()
+                .mapToDouble(ingredient -> ingredient.getIngredient().getUnitePrice() * ingredient.getRequiredQuantity())
                 .sum();
+    }
+
+    public double getIngredientsCost(LocalDateTime date) {
+        return getIngredients().stream()
+                .mapToDouble(ingredient -> ingredient.getIngredient().getUnitePrice() * ingredient.getRequiredQuantity())
+                .sum();
+    }
+
+    public double getGrossMargin(){
+        return getUnitPrice() - getIngredientsCost(LocalDateTime.from(LocalDate.from(LocalDateTime.now())));
+    }
+
+    public double getGrossMargin(LocalDateTime date){
+        return getUnitPrice() - getIngredientsCost(date);
     }
 
 }

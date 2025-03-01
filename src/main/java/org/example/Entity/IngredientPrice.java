@@ -4,7 +4,6 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
-@Getter
 @Setter
 @ToString
 @EqualsAndHashCode
@@ -19,5 +18,13 @@ public class IngredientPrice {
 
     public IngredientPrice() {
 
+    }
+
+    public int getUnitPrice() {
+        return unitPrice;
+    }
+
+    public LocalDateTime getDate() {
+        return date;
     }
 }

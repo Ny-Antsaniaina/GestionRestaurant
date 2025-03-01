@@ -3,6 +3,7 @@ package org.exemple;
 import org.example.DAO.CrudOperation.Criteria;
 import org.example.DAO.CrudOperation.IngredientCrudOperation;
 import org.example.Entity.Ingredient;
+import org.example.Entity.QuantityStock;
 import org.example.Entity.Unity;
 import org.junit.jupiter.api.Test;
 
@@ -36,7 +37,7 @@ public class IngredientsTest {
         assertEquals(expected, actual);
     }
 
-    // Méthode pour trier la liste des ingrédients par ID
+
     private void sortIngredients(List<Ingredient> ingredients) {
         ingredients.sort(Comparator.comparing(Ingredient::getId));
     }
@@ -63,6 +64,28 @@ public class IngredientsTest {
         System.out.println(actual);
         System.out.println(expected);
         assertTrue(actual.containsAll(expected));
+    }
+
+    @Test
+    public  void get_available_quantity_with_date(){
+        Ingredient ingredient = Pain();
+        QuantityStock expected = PainStock();
+
+        QuantityStock actual = ingredient.getAvalaibleQuantity(LocalDateTime.of(2025,02,24,8,0,0));
+        System.out.println(actual);
+        System.out.println(expected);
+        assertTrue(expected.equals(actual));
+    }
+
+    @Test
+    public  void get_available_quantity_without_date(){
+        Ingredient ingredient = Oeuf();
+        QuantityStock expected = OeufStock();
+
+        QuantityStock actual = ingredient.getAvalaibleQuantity();
+        System.out.println(actual);
+        System.out.println(expected);
+        assertTrue(expected.equals(actual));
     }
 
     @Test
@@ -152,5 +175,26 @@ public class IngredientsTest {
         ingredient.setUnitePrice(1000);
         ingredient.setUnity(Unity.U);
         return ingredient;
+    }
+
+
+    public QuantityStock SaucisseStock(){
+        return createQuantityStock(10000.0, Unity.G);
+    }
+
+    public QuantityStock HuileStock(){
+        return createQuantityStock(20.0, Unity.L);
+    }
+
+    public QuantityStock OeufStock(){
+        return createQuantityStock(80.0, Unity.U);
+    }
+
+    public QuantityStock PainStock(){
+        return createQuantityStock(30.0, Unity.U);
+    }
+
+    public QuantityStock createQuantityStock(Double quantity, Unity unity) {
+        return new QuantityStock(quantity,unity);
     }
 }

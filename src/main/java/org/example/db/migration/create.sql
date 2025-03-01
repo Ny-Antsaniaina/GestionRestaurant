@@ -48,7 +48,28 @@ CREATE TABLE ingredient_price_history (
                                           CONSTRAINT fk_ingredient_price FOREIGN KEY (ingredient_id) REFERENCES ingredient(id) ON DELETE CASCADE
 );
 
+CREATE TYPE movement AS ENUM ('ENTER','EXIT');
 
+CREATE TABLE stock(
+                      id serial PRIMARY KEY,
+                      movement movement,
+                      quantity FLOAT,
+                      unity unit_enum,
+                      date TIMESTAMP,
+                      id_ingredient int,
+                      FOREIGN KEY (id_ingredient) REFERENCES ingredient(id)  on delete cascade on update cascade
+);
+
+INSERT INTO stock ( movement, quantity, unity, date, id_ingredient) VALUES
+                                                                           ( 'ENTER', 100, 'U', '2025-02-01 08:00:00.0', 3),
+                                                                           ( 'ENTER', 50, 'U', '2025-02-01 08:00:00.0', 4),
+                                                                           ( 'ENTER', 10000, 'G', '2025-02-01 08:00:00.0', 1),
+                                                                           ( 'ENTER', 20, 'L', '2025-02-01 08:00:00.0', 2);
+
+INSERT INTO stock (movement, quantity, unity, date, id_ingredient) VALUES
+                                                                           ('EXIT', 10, 'U', '2025-02-02 10:00:00.0', 3),
+                                                                           ( 'EXIT', 10, 'U', '2025-02-03 15:00:00.0', 3),
+                                                                           ( 'EXIT', 20, 'U', '2025-02-05 16:00:00.0', 4);
 
 INSERT INTO ingredient (name, last_modified, unit_price, unit) VALUES
                                                                    ('Saucisse', '2025-01-01 00:00', 20.0, 'G'),

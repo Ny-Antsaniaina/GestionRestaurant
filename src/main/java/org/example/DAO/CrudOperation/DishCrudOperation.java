@@ -1,15 +1,14 @@
 package org.example.DAO.CrudOperation;
 
 import org.example.DAO.Mapper.EnumMapper;
-import org.example.DataBase.ConnectionDataBase;
+import org.example.db.ConnectionDataBase;
 import org.example.Entity.Dish;
 import org.example.Entity.DishIngredient;
 import org.example.Entity.Ingredient;
+import org.example.Entity.IngredientPrice;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -169,5 +168,45 @@ public class DishCrudOperation implements CrudOperation<Dish> {
              throw new RuntimeException("Error deleting dish with id " + id, e);
          }
      }
+
+    public IngredientPrice getIngredientPrice(int ingredient_id){
+        String sql = "SELECT unit_price, date FROM price WHERE id_ingredient = ? AND date <= CURRENT_DATE ORDER BY date DESC LIMIT 1";
+        try(Connection connection = dataSource.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql)){
+            statement.setInt(1, ingredient_id);
+            try(ResultSet resultSet = statement.executeQuery();){
+                if(resultSet.next()){
+                    IngredientPrice ingredientPrice = new IngredientPrice(
+                            resultSet.getInt("unit_price"),
+                            resultSet.getTimestamp("date").toLocalDateTime()
+                    );
+                    return ingredientPrice;
+                }
+                return null;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    public IngredientPrice getIngredientPrice(String ingredient_id, LocalDateTime dateTime){
+        String sql = "SELECT unit_price, date FROM price WHERE id_ingredient = ? AND date <= ? ORDER BY date DESC LIMIT 1";
+        try(Connection connection = dataSource.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql)){
+            statement.setString(1, ingredient_id);
+            statement.setTimestamp(2, Timestamp.valueOf(dateTime));
+            try(ResultSet resultSet = statement.executeQuery();){
+                if(resultSet.next()){
+                    IngredientPrice ingredientPrice = new IngredientPrice(
+                            resultSet.getInt("unit_price"),
+                            resultSet.getTimestamp("date").toLocalDateTime()
+                    );
+                    return ingredientPrice;
+                }
+                return null;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
 }

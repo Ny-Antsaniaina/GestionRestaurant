@@ -19,11 +19,7 @@ public class DishTest {
 
     @Test
     public void get_ingredient_cost_test(){
-        Dish dish = new Dish();
-        dish.setId(1);
-        dish.setName("Hot Dog");
-        dish.setUnitPrice(15000);
-
+        Dish dish = subject.findById(1);
         Ingredient saucisse = new Ingredient(1,"saucisse", LocalDateTime.now(),20, Unity.G);
         Ingredient huile = new Ingredient(2,"huile", LocalDateTime.now(),10000, Unity.L);
         Ingredient oeuf = new Ingredient(3,"oeuf", LocalDateTime.now(),1000, Unity.U);
@@ -35,8 +31,12 @@ public class DishTest {
         DishIngredient dishIngredient4 = new DishIngredient(dish,pain,1,Unity.U);
 
         dish.setIngredients(Arrays.asList(dishIngredient1,dishIngredient2,dishIngredient3,dishIngredient4));
-        int expected = 5500;
-        double actual = dish.getIngredientsCost();
+        double expected = 5500;
+
+
+        double actual = dish.getIngredientsPriceTotal();
+
+        assertEquals(expected, actual);
         System.out.println(expected);
         System.out.println(actual);
         assertEquals(expected , actual ,0.01);
