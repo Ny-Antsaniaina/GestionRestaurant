@@ -1,9 +1,5 @@
 package org.example.Entity;
 
-import org.example.Entity.Ingredient;
-import org.example.Entity.Movement;
-import org.example.Entity.Unity;
-
 import java.time.LocalDateTime;
 import java.util.Objects;
 

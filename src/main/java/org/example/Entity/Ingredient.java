@@ -14,17 +14,15 @@ import java.util.*;
 @Getter
 @Setter
 @ToString
-@EqualsAndHashCode
 public class Ingredient {
-    private int id;
+    private String id;
     private String name;
     private LocalDateTime lastModifier;
     private double unitePrice;
     private Unity unity;
-    private Map<LocalDate, Double> priceHistory = new HashMap<>();
-    private List<StockMovement> stockMovements = new ArrayList<>();
 
-    public Ingredient(int id, String name, LocalDateTime lastModifier , double unitePrice, Unity unity) {
+
+    public Ingredient(String id, String name, LocalDateTime lastModifier , double unitePrice, Unity unity) {
         this.id = id;
         this.name = name;
         this.lastModifier = lastModifier;
@@ -37,9 +35,6 @@ public class Ingredient {
     }
 
 
-    public void addPrice(LocalDate date, double price) {
-        priceHistory.put(date, price);
-    }
 
     public int getUnitPrice(LocalDateTime date) {
         IngredientCrudOperation ingredientCrudOperation = new IngredientCrudOperation();
@@ -54,13 +49,19 @@ public class Ingredient {
         IngredientCrudOperation ingredientCrudOperation = new IngredientCrudOperation();
         List<Stock> stocks = ingredientCrudOperation.getAvailableStocks(id);
         double quantity = 0.0;
+
         for (Stock stock : stocks) {
-            if(stock.getMovement() == Movement.EXIT){
+            System.out.println("Processing stock: " + stock.getId() + ", Movement: " + stock.getMovement() + ", Quantity: " + stock.getQuantity());
+            if (stock.getMovement() == Movement.EXIT) {
+                System.out.println("Subtracting: " + stock.getQuantity());
                 quantity -= stock.getQuantity();
-            }else {
+            } else {
+                System.out.println("Adding: " + stock.getQuantity());
                 quantity += stock.getQuantity();
             }
         }
+
+        System.out.println("Final available quantity: " + quantity);  // Log the final quantity
         return new QuantityStock(quantity, unity);
     }
 
@@ -75,7 +76,20 @@ public class Ingredient {
                 quantity += stock.getQuantity();
             }
         }
+        System.out.println("Stocks for " + id + " at " + date + ": " + quantity);
         return new QuantityStock(quantity, unity);
     }
 
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Ingredient that = (Ingredient) o;
+        return Double.compare(unitePrice, that.unitePrice) == 0 && Objects.equals(id, that.id) && Objects.equals(name, that.name) && Objects.equals(lastModifier, that.lastModifier) && unity == that.unity;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, name, lastModifier, unitePrice, unity);
+    }
 }

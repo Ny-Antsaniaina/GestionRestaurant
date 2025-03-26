@@ -10,13 +10,11 @@ import java.util.Objects;
 @ToString
 @EqualsAndHashCode
 public class DishIngredient {
-    private Dish dish;
     private Ingredient ingredient;
     private double requiredQuantity;
     private Unity  unity;
 
-    public DishIngredient(Dish dish, Ingredient ingredient, double requiredQuantity, Unity unity) {
-        this.dish = dish;
+    public DishIngredient(Ingredient ingredient, double requiredQuantity, Unity unity) {
         this.ingredient = ingredient;
         this.requiredQuantity = requiredQuantity;
         this.unity = unity;

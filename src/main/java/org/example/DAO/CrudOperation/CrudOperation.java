@@ -5,7 +5,7 @@ import java.util.List;
 
 public interface CrudOperation<E>{
     List<E> findAll(int page, int pageSize) throws SQLException;
-    E findById(int id);
+    E findById(String id);
     List<E> saveAll(List<E> list);
-    void deleteById(int id);
+    void deleteById(String id);
 }

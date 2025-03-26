@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 public class StockMovement {
     private Ingredient ingredient;
     private double quantity;
-    private MovementType type;
+    private Movement type;
     private LocalDateTime timestamp;
 }
 
