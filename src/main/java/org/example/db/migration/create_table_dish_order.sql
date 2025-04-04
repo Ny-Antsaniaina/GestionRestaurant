@@ -4,6 +4,6 @@ CREATE TABLE dish_order (
                             dish_id VARCHAR NOT NULL,
                             quantity INT CHECK (quantity > 0),
                             status dish_order_status_enum DEFAULT 'CREATED' NOT NULL,
-                            FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE ON UPDATE CASCADE,
+                            FOREIGN KEY (order_id) REFERENCES customer_order(id) ON DELETE CASCADE ON UPDATE CASCADE,
                             FOREIGN KEY (dish_id) REFERENCES dish(id) ON DELETE CASCADE ON UPDATE CASCADE
 );

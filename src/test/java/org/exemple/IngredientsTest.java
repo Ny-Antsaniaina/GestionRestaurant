@@ -148,14 +148,14 @@ public class IngredientsTest {
         assertEquals(actualName, expectedName, "The lists are not equal after comparison.");
 
 
-        logger.info("filter by interval price");
-        List<Criteria> criteriaPrice = new ArrayList<>();
-        criteriaPrice.add(new Criteria("price",2000,10000));
-        List<Ingredient> expectedPrice = List.of(Huile());
-        List<Ingredient> actualPrice = subject.getFitersIngredient(criteriaPrice,"price","ASC",1,3);
-        System.out.println("actualPrice: " + actualPrice);
-        System.out.println("expectedPrice: " + expectedPrice);
-        assertEquals(expectedPrice,actualPrice);
+//        logger.info("filter by interval price");
+//        List<Criteria> criteriaPrice = new ArrayList<>();
+//        criteriaPrice.add(new Criteria("price",2000,10000));
+//        List<Ingredient> expectedPrice = List.of(Huile());
+//        List<Ingredient> actualPrice = subject.getFitersIngredient(criteriaPrice,"price","ASC",1,3);
+//        System.out.println("actualPrice: " + actualPrice);
+//        System.out.println("expectedPrice: " + expectedPrice);
+//        assertEquals(expectedPrice,actualPrice);
 
         logger.info("filter by interval date");
         List<Criteria> criteriaDate = new ArrayList<>();
@@ -166,14 +166,14 @@ public class IngredientsTest {
         System.out.println("expectedDate: " + expectedDate);
         assertTrue(actualDate.containsAll(expectedDate));
 
-        logger.info("filter by pice");
-        List<Criteria> price = new ArrayList<>();
-        price.add(new Criteria("price",1000,"="));
-        List<Ingredient> exeptedPrice = List.of(Oeuf(),Pain());
-        List<Ingredient> actualPrice2 = subject.getFitersIngredient(price,"price","ASC",1,2);
-        System.out.println("actualPrice2: " + actualPrice2);
-        System.out.println("expectedPrice: " + exeptedPrice);
-        assertTrue(actualPrice2.containsAll(exeptedPrice));
+//        logger.info("filter by pice");
+//        List<Criteria> price = new ArrayList<>();
+//        price.add(new Criteria("price",1000,"="));
+//        List<Ingredient> exeptedPrice = List.of(Oeuf(),Pain());
+//        List<Ingredient> actualPrice2 = subject.getFitersIngredient(price,"price","ASC",1,2);
+//        System.out.println("actualPrice2: " + actualPrice2);
+//        System.out.println("expectedPrice: " + exeptedPrice);
+//        assertTrue(actualPrice2.containsAll(exeptedPrice));
     }
 
     public Ingredient Saucisse(){

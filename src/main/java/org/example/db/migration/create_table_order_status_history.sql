@@ -3,7 +3,7 @@ CREATE TABLE order_status_history (
                                       order_id VARCHAR NOT NULL,
                                       status order_status_enum NOT NULL,
                                       changed_at TIMESTAMP DEFAULT current_timestamp NOT NULL,
-                                      FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE ON UPDATE CASCADE
+                                      FOREIGN KEY (order_id) REFERENCES customer_order(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 create table customer (
     id serial primary key,

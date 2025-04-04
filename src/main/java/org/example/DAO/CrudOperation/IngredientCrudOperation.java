@@ -4,6 +4,7 @@ import org.example.db.ConnectionDataBase;
 import org.example.Entity.*;
 
 import java.sql.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -118,71 +119,8 @@ public class IngredientCrudOperation implements CrudOperation<Ingredient> {
     }
 
 
-    public List<Ingredient> getFitersIngredient(List<Criteria> criteria, String sortBy, String sortOrder, int page, int pageSize) {
-        List<Ingredient> listIngredients = new ArrayList<>();
-        StringBuilder sql = new StringBuilder("SELECT i.id, i.name, i.unity FROM ingredient i");
 
-        // Join the ingredient_price_history table for price-based filtering
-        sql.append(" LEFT JOIN ingredient_price_history iph ON i.id = iph.ingredient_id");
 
-        sql.append(" WHERE 1=1");
-
-        for (Criteria c : criteria) {
-            if ("BETWEEN".equals(c.getOperator())) {
-                sql.append(" AND ").append(c.getColumn()).append(" BETWEEN ? AND ?");
-            } else if ("LIKE".equals(c.getOperator()) || "ILIKE".equals(c.getOperator())) {
-                sql.append(" AND ").append(c.getColumn()).append(" ILIKE ?");
-            } else {
-                sql.append(" AND ").append(c.getColumn()).append(" ").append(c.getOperator()).append(" ?");
-            }
-        }
-
-        // Add sorting if necessary
-        if (sortBy != null && !sortBy.isEmpty()) {
-            sql.append(" ORDER BY ").append(sortBy).append(" ").append((sortOrder != null ? sortOrder : "ASC"));
-        }
-
-        // Add pagination
-        sql.append(" LIMIT ? OFFSET ?");
-
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql.toString())) {
-            int i = 1;
-
-            // Set the criteria parameters
-            for (Criteria c : criteria) {
-                if ("BETWEEN".equals(c.getOperator())) {
-                    statement.setObject(i++, c.getValueIntervalMin());
-                    statement.setObject(i++, c.getValueIntervalMax());
-                } else if ("LIKE".equals(c.getOperator()) || "ILIKE".equals(c.getOperator())) {
-                    statement.setString(i++, "%" + c.getValueIntervalMin() + "%");
-                } else {
-                    statement.setObject(i++, c.getValueIntervalMin());
-                }
-            }
-
-            // Set pagination parameters
-            statement.setInt(i++, pageSize);
-            statement.setInt(i++, pageSize * (page - 1));
-
-            try (ResultSet resultSet = statement.executeQuery()) {
-                while (resultSet.next()) {
-                    IngredientPrice ingredientPrice = getIngredientPrice(resultSet.getString("id"));
-                    Ingredient ingredient = new Ingredient();
-                    ingredient.setId(resultSet.getString("id"));
-                    ingredient.setName(resultSet.getString("name"));
-                    ingredient.setLastModifier(ingredientPrice.getDate());
-                    ingredient.setUnitePrice(ingredientPrice.getUnitPrice());
-                    ingredient.setUnity(Unity.valueOf(resultSet.getString("unity")));
-                    listIngredients.add(ingredient);
-                }
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-
-        return listIngredients;
-    }
 
 
 
@@ -300,6 +238,117 @@ public class IngredientCrudOperation implements CrudOperation<Ingredient> {
             return stocks;
         } catch (SQLException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public List<Ingredient> getFitersIngredient(List<Criteria> criteriaList, String sortBy, String sortOrder, int page, int pageSize) {
+        StringBuilder sql = new StringBuilder("""
+        SELECT DISTINCT i.id, i.name, i.unity, ip.price, ip.date
+        FROM ingredient i
+        LEFT JOIN (
+            SELECT ingredient_id, price, date,
+                   ROW_NUMBER() OVER (PARTITION BY ingredient_id ORDER BY date DESC) as rn
+            FROM ingredient_price_history
+        ) ip ON i.id = ip.ingredient_id AND ip.rn = 1
+        WHERE 1=1
+        """);
+
+
+        for (Criteria criteria : criteriaList) {
+            switch (criteria.getColumn()) {
+                case "name":
+                    if ("ILIKE".equals(criteria.getOperator())) {
+                        sql.append(" AND i.name ILIKE ?");
+                    } else {
+                        sql.append(" AND i.name = ?");
+                    }
+                    break;
+                case "price":
+                    if (criteria.getValueIntervalMax() != null) {
+                        sql.append(" AND ip.price BETWEEN ? AND ?");
+                    } else {
+                        sql.append(" AND ip.price = ?");
+                    }
+                    break;
+                case "date":
+                    sql.append(" AND ip.date BETWEEN ? AND ?");
+                    break;
+                case "unity":
+                    sql.append(" AND i.unity = ?::unit_enum");
+                    break;
+            }
+        }
+
+        if (sortBy != null) {
+            sql.append(" ORDER BY ").append(sortBy);
+            if (sortOrder != null) {
+                sql.append(" ").append(sortOrder);
+            }
+        }
+
+        // Ajout de la pagination
+        sql.append(" LIMIT ? OFFSET ?");
+
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql.toString())) {
+
+            int paramIndex = 1;
+
+            // Paramètres pour les critères
+            for (Criteria criteria : criteriaList) {
+                switch (criteria.getColumn()) {
+                    case "name":
+                        if ("ILIKE".equals(criteria.getOperator())) {
+                            statement.setString(paramIndex++, "%" + criteria.getValueIntervalMin() + "%");
+                        } else {
+                            statement.setString(paramIndex++, (String) criteria.getValueIntervalMin());
+                        }
+                        break;
+                    case "price":
+                        if (criteria.getValueIntervalMax() != null) {
+                            statement.setDouble(paramIndex++, (Double) criteria.getValueIntervalMin());
+                            statement.setDouble(paramIndex++, (Double) criteria.getValueIntervalMax());
+                        } else {
+                            statement.setDouble(paramIndex++, (Double) criteria.getValueIntervalMin());
+                        }
+                        break;
+                    case "date":
+                        statement.setDate(paramIndex++, Date.valueOf((LocalDate) criteria.getValueIntervalMin()));
+                        statement.setDate(paramIndex++, Date.valueOf((LocalDate) criteria.getValueIntervalMax()));
+                        break;
+                    case "unity":
+                        statement.setString(paramIndex++, criteria.getValueIntervalMin().toString());
+                        break;
+                }
+            }
+
+            // Paramètres pour la pagination
+            statement.setInt(paramIndex++, pageSize);
+            statement.setInt(paramIndex++, pageSize * (page - 1));
+
+            ResultSet resultSet = statement.executeQuery();
+            List<Ingredient> ingredients = new ArrayList<>();
+
+            while (resultSet.next()) {
+                Ingredient ingredient = new Ingredient();
+                ingredient.setId(resultSet.getString("id"));
+                ingredient.setName(resultSet.getString("name"));
+                ingredient.setUnity(Unity.valueOf(resultSet.getString("unity")));
+
+                IngredientPrice ingredientPrice = new IngredientPrice();
+                ingredientPrice.setUnitPrice(resultSet.getInt("price"));
+                ingredientPrice.setDate(resultSet.getTimestamp("date").toLocalDateTime());
+
+                ingredient.setUnitePrice(ingredientPrice.getUnitPrice());
+                ingredient.setLastModifier(ingredientPrice.getDate());
+
+                ingredients.add(ingredient);
+            }
+
+            return ingredients;
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to filter ingredients", e);
         }
     }
 
