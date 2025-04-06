@@ -3,6 +3,8 @@ package org.example.Entity;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.example.DAO.CrudOperation.DishOrderCrudOperation;
+import org.example.DAO.CrudOperation.OrderCrudOperation;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -17,18 +19,22 @@ public class Order {
     private LocalDateTime createdAt;
     private StatusEnum status;
     private List<DishOrder> dishOrders = new ArrayList<>();
-
-    public Order() {
-        this.id = UUID.randomUUID().toString();
-        this.createdAt = LocalDateTime.now();
+    public Order(String id) {
+        this.id = id;
         this.status = StatusEnum.CREATED;
+        this.createdAt = LocalDateTime.now();
+        this.dishOrders = new ArrayList<>();
     }
 
-    public Order(String id, LocalDateTime createdAt, StatusEnum status, List<DishOrder> dishOrders) {
+    public Order(String id, List<DishOrder> dishOrders) {
         this.id = id;
-        this.createdAt = createdAt;
-        this.status = status;
-        this.dishOrders = dishOrders != null ? dishOrders : new ArrayList<>();
+        this.status = StatusEnum.CREATED;
+        this.createdAt = LocalDateTime.now();
+        this.dishOrders = dishOrders;
+    }
+
+    public Order() {
+
     }
 
     public StatusEnum getActualStatus() {
@@ -45,22 +51,14 @@ public class Order {
                 .sum();
     }
 
-    public void addDishOrder(Dish dish, int quantity) {
-        DishOrder dishOrder = new DishOrder();
-        dishOrder.setId(UUID.randomUUID().toString());
-        dishOrder.setDish(dish);
-        dishOrder.setQuantity(quantity);
-        dishOrder.setStatus(StatusEnum.CREATED);
+    public Order addOrderDish(List<DishOrder> dishOrders) {
+        OrderCrudOperation orderDAO = new OrderCrudOperation();
+        DishOrderCrudOperation dishOrderDAO = new DishOrderCrudOperation();
 
-        // Initialise l'historique des statuts
-        DishOrderStatusHistory initialStatus = new DishOrderStatusHistory();
-        initialStatus.setId(UUID.randomUUID().toString());
-        initialStatus.setStatus(StatusEnum.CREATED);
-        initialStatus.setChangedAt(LocalDateTime.now());
+        orderDAO.addOrder(this);
+        dishOrders.forEach(d -> d.setOrder(this));
+        dishOrderDAO.saveAll(dishOrders);
 
-        dishOrder.setStatusHistory(new ArrayList<>());
-        dishOrder.getStatusHistory().add(initialStatus);
-
-        dishOrders.add(dishOrder);
+        return orderDAO.findById(this.id);
     }
 }

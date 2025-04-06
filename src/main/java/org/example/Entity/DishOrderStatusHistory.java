@@ -17,7 +17,16 @@ public class DishOrderStatusHistory {
     private StatusEnum status;
     private LocalDateTime changedAt;
 
-    public DishOrderStatusHistory() {
-
+    public DishOrderStatusHistory(String id, StatusEnum status, LocalDateTime changedAt) {
+        this.id = id;
+        this.status = status;
+        this.changedAt = changedAt;
     }
+
+    public DishOrderStatusHistory() {
+        this.id = null;
+        this.status = null;
+        this.changedAt = null;
+    }
+
 }

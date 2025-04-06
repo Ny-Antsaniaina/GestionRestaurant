@@ -2,17 +2,17 @@ package org.exemple;
 
 import org.example.DAO.CrudOperation.DishCrudOperation;
 import org.example.DAO.CrudOperation.OrderCrudOperation;
-import org.example.Entity.DishOrder;
-import org.example.Entity.Order;
-import org.example.Entity.StatusEnum;
+import org.example.Entity.*;
+import org.example.db.ConnectionDataBase;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class OrderTest {
+public class DishOrderTest {
     OrderCrudOperation subject = new OrderCrudOperation();
+    ConnectionDataBase connectionDataBase = new ConnectionDataBase();
 
     @Test
     public void getTotalAmount(){

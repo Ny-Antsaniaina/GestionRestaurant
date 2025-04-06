@@ -6,6 +6,7 @@ import lombok.ToString;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,51 +17,32 @@ public class DishOrder {
     private String id;
     private Dish dish;
     private int quantity;
-    private StatusEnum status;
+    private Order order;
     private List<DishOrderStatusHistory> statusHistory = new ArrayList<>();
 
     public DishOrder() {
         this.statusHistory.add(new DishOrderStatusHistory(UUID.randomUUID().toString(), this, StatusEnum.CREATED, LocalDateTime.now()));
     }
 
-    public DishOrder(String id, Dish dish, int quantity, StatusEnum status, List<DishOrderStatusHistory> statusHistory) {
+    public DishOrder(String id, Dish dish, int quantity,  List<DishOrderStatusHistory> statusHistory) {
         this.id = id;
         this.dish = dish;
         this.quantity = quantity;
-        this.status = status;
         this.statusHistory = statusHistory != null ? statusHistory : new ArrayList<>();
     }
 
-    public StatusEnum getActualStatus() {
-        return status;
+    public DishOrder(String id, Dish byId, int quantity) {
+        this.id = id;
+        this.dish = byId;
+        this.quantity = quantity;
+        this.statusHistory = new ArrayList<>();
     }
 
-    public void updateStatus(StatusEnum newStatus) {
-        if (!isValidStatusTransition(this.status, newStatus)) {
-            throw new RuntimeException("Invalid status transition from " + this.status + " to " + newStatus);
-        }
 
-        this.status = newStatus;
-        this.statusHistory.add(new DishOrderStatusHistory(
-                UUID.randomUUID().toString(),
-                this,
-                newStatus,
-                LocalDateTime.now()
-        ));
+    public DishOrderStatusHistory getActualStatus() {
+        return statusHistory.stream()
+                .max(Comparator.comparing(DishOrderStatusHistory::getChangedAt))
+                .orElse(null);
     }
 
-    private boolean isValidStatusTransition(StatusEnum currentStatus, StatusEnum newStatus) {
-        switch (currentStatus) {
-            case CREATED:
-                return newStatus == StatusEnum.CONFIRMED;
-            case CONFIRMED:
-                return newStatus == StatusEnum.IN_PREPARATION;
-            case IN_PREPARATION:
-                return newStatus == StatusEnum.COMPLETED;
-            case COMPLETED:
-                return newStatus == StatusEnum.SERVED;
-            default:
-                return false;
-        }
-    }
 }

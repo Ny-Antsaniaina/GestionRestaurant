@@ -11,6 +11,7 @@ import java.util.List;
 
 public class IngredientCrudOperation implements CrudOperation<Ingredient> {
     ConnectionDataBase dataSource = new ConnectionDataBase();
+    CommonCrudOperations commonCrudOperations = new CommonCrudOperations();
 
     @Override
     public List<Ingredient> findAll(int page, int pageSize) {
@@ -26,7 +27,7 @@ public class IngredientCrudOperation implements CrudOperation<Ingredient> {
                 statement.setInt(2, pageSize * (page - 1));
                 try (ResultSet resultSet = statement.executeQuery();) {
                     while (resultSet.next()) {
-                        IngredientPrice ingredientPrice = getIngredientPrice(resultSet.getString("id"));
+                        IngredientPrice ingredientPrice = commonCrudOperations.getIngredientPrice(resultSet.getString("id"));
                         Ingredient ingredient = new Ingredient();
                         ingredient.setId(resultSet.getString("id"));
                         ingredient.setName(resultSet.getString("name"));
@@ -54,7 +55,7 @@ public class IngredientCrudOperation implements CrudOperation<Ingredient> {
             statement.setString(1, id);
             try (ResultSet rs = statement.executeQuery()) {
                 if (rs.next()) {
-                    IngredientPrice ingredientPrice = getIngredientPrice(rs.getString("id"));
+                    IngredientPrice ingredientPrice = commonCrudOperations.getIngredientPrice(rs.getString("id"));
                     Ingredient ingredient = new Ingredient();
                     ingredient.setId(rs.getString("id"));
                     ingredient.setName(rs.getString("name"));
@@ -118,12 +119,6 @@ public class IngredientCrudOperation implements CrudOperation<Ingredient> {
         }
     }
 
-
-
-
-
-
-
     public String getPriceID(String ingredient_id) {
         String sql = "SELECT id FROM ingredient_price_history WHERE id = ?";
         String id = null;
@@ -141,27 +136,6 @@ public class IngredientCrudOperation implements CrudOperation<Ingredient> {
             throw new RuntimeException(e);
         }
         return id;
-    }
-
-    public IngredientPrice getIngredientPrice(String ingredient_id){
-        String sql = "SELECT price, date FROM ingredient_price_history WHERE id = ? ORDER BY ABS(EXTRACT(EPOCH FROM date) - EXTRACT(EPOCH FROM ?::timestamp)) LIMIT 1;";
-        try(Connection connection = dataSource.getConnection();
-            PreparedStatement statement = connection.prepareStatement(sql)){
-            statement.setString(1, ingredient_id);
-            statement.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
-            try(ResultSet resultSet = statement.executeQuery();){
-                if(resultSet.next()){
-                    IngredientPrice ingredientPrice = new IngredientPrice();
-                    ingredientPrice.setUnitPrice(resultSet.getInt("price"));
-                    ingredientPrice.setDate(resultSet.getTimestamp("date").toLocalDateTime());
-
-                    return ingredientPrice;
-                }
-                return null;
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     public IngredientPrice getIngredientPrice(String ingredient_id, LocalDateTime date){

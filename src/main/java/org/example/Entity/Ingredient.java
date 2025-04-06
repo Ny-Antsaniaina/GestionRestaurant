@@ -34,8 +34,6 @@ public class Ingredient {
 
     }
 
-
-
     public int getUnitPrice(LocalDateTime date) {
         IngredientCrudOperation ingredientCrudOperation = new IngredientCrudOperation();
         IngredientPrice price =  ingredientCrudOperation.getIngredientPrice(id, date);

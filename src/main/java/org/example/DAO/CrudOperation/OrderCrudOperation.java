@@ -12,8 +12,8 @@ import java.util.logging.Logger;
 
 public class OrderCrudOperation implements CrudOperation<Order> {
     private ConnectionDataBase dataSource = new ConnectionDataBase();
-    private DishCrudOperation dishCrudOperation = new DishCrudOperation();
     private static final Logger logger = Logger.getLogger(OrderCrudOperation.class.getName());
+    CommonCrudOperations commonCrudOperations = new CommonCrudOperations();
 
     @Override
     public List<Order> findAll(int page, int pageSize) {
@@ -72,9 +72,9 @@ public class OrderCrudOperation implements CrudOperation<Order> {
         String orderSql = "INSERT INTO customer_order (id, created_at, status) VALUES (?, ?, ?) " +
                 "ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status";
 
-        String dishOrderSql = "INSERT INTO dish_order (id, order_id, dish_id, quantity, status) " +
+        String dishOrderSql = "INSERT INTO dish_order (id, order_id, dish_id, quantity) " +
                 "VALUES (?, ?, ?, ?, ?) " +
-                "ON CONFLICT (id) DO UPDATE SET quantity = EXCLUDED.quantity, status = EXCLUDED.status";
+                "ON CONFLICT (id) DO UPDATE SET quantity = EXCLUDED.quantity";
 
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);
@@ -95,7 +95,6 @@ public class OrderCrudOperation implements CrudOperation<Order> {
                         dishOrderStmt.setString(2, order.getId());
                         dishOrderStmt.setString(3, dishOrder.getDish().getId());
                         dishOrderStmt.setInt(4, dishOrder.getQuantity());
-                        dishOrderStmt.setString(5, dishOrder.getStatus().toString());
                         dishOrderStmt.executeUpdate();
                     }
                 }
@@ -109,7 +108,7 @@ public class OrderCrudOperation implements CrudOperation<Order> {
         }
         return orders;
     }
-    private void saveDishOrderStatusHistory(Connection connection, DishOrder dishOrder) throws SQLException {
+    public void saveDishOrderStatusHistory(Connection connection, DishOrder dishOrder) throws SQLException {
         String sql = "INSERT INTO dish_order_status_history (id, dish_order_id, status, changed_at) " +
                 "VALUES (?, ?, ?::dish_order_status_enum, ?)";
 
@@ -137,33 +136,55 @@ public class OrderCrudOperation implements CrudOperation<Order> {
         }
     }
 
-    private List<DishOrder> getDishOrdersForOrder(String orderId) {
-        String sql = "SELECT id, dish_id, quantity, status FROM dish_order WHERE order_id = ?";
-        List<DishOrder> dishOrders = new ArrayList<>();
-
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-
+    public List<DishOrder> getDishOrdersForOrder(String orderId) {
+        List<DishOrder> dishOrderList = new ArrayList<>();
+        String sql = "SELECT id, order_id, dish_id, quantity FROM dish_order WHERE order_id = ?";
+        try(Connection connection = dataSource.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql)){
             statement.setString(1, orderId);
-            ResultSet resultSet = statement.executeQuery();
-
-            while (resultSet.next()) {
-                DishOrder dishOrder = new DishOrder();
-                dishOrder.setId(resultSet.getString("id"));
-                dishOrder.setDish(dishCrudOperation.findById(resultSet.getString("dish_id")));
-                dishOrder.setQuantity(resultSet.getInt("quantity"));
-                dishOrder.setStatus(StatusEnum.valueOf(resultSet.getString("status")));
-                dishOrder.setStatusHistory(getDishOrderStatusHistory(dishOrder.getId()));
-                dishOrders.add(dishOrder);
+            try(ResultSet resultSet = statement.executeQuery()){
+                while(resultSet.next()){
+                    DishOrder dishOrder = new DishOrder(
+                            resultSet.getString("id"),
+                            commonCrudOperations.findDishById(resultSet.getString("id_dish")),
+                            resultSet.getInt("quantity"),
+                            findByDishOrderId(resultSet.getString("id"))
+                    );
+                    dishOrderList.add(dishOrder);
+                }
             }
+            return dishOrderList;
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to fetch dish orders for order: " + orderId, e);
+            throw new RuntimeException(e);
         }
-
-        return dishOrders;
     }
 
-    private List<DishOrderStatusHistory> getDishOrderStatusHistory(String dishOrderId) {
+    private List<DishOrderStatusHistory> findByDishOrderId(String id) {
+        List<DishOrderStatusHistory> dishOrderStatusHistoryList = new ArrayList<>();
+        String sql = "SELECT id, status, changed_at FROM dish_order_status_history WHERE dish_order_id = ?";
+        try(Connection connection = dataSource.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql)){
+            statement.setString(1, id);
+            try(ResultSet resultSet = statement.executeQuery()){
+                if (resultSet.next()) {
+
+                    DishOrderStatusHistory dishOrderStatusHistory = new DishOrderStatusHistory(
+                            resultSet.getString("id"),
+                    StatusEnum.valueOf(resultSet.getString("status")),
+                            resultSet.getTimestamp("changed_at").toLocalDateTime());
+
+
+                    dishOrderStatusHistoryList.add(dishOrderStatusHistory);
+                }
+            }
+            return dishOrderStatusHistoryList;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    public List<DishOrderStatusHistory> getDishOrderStatusHistory(String dishOrderId) {
         String sql = "SELECT id, status, changed_at FROM dish_order_status_history WHERE dish_order_id = ? ORDER BY changed_at";
         List<DishOrderStatusHistory> statusHistory = new ArrayList<>();
 
@@ -216,7 +237,6 @@ public class OrderCrudOperation implements CrudOperation<Order> {
             throw new RuntimeException("Order can only be confirmed from CREATED status");
         }
 
-        // Check stock availability for all dishes in the order
         for (DishOrder dishOrder : order.getDishOrders()) {
             Dish dish = dishOrder.getDish();
             if (dish.getAvailableQuantity() < dishOrder.getQuantity()) {
@@ -259,5 +279,25 @@ public class OrderCrudOperation implements CrudOperation<Order> {
             default:
                 return false;
         }
+    }
+
+    public Order addOrder(Order order) {
+        Order createdOrder = null;
+        String orderSql = "INSERT INTO orders (id, status, date) VALUES (?, DEFAULT, DEFAULT) RETURNING id";
+
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(orderSql)) {
+
+            statement.setString(1, order.getId());
+            ResultSet rs = statement.executeQuery();
+
+            if (rs.next()) {
+                createdOrder = findById(rs.getString("id"));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Erreur lors de l'ajout de la commande", e);
+        }
+
+        return createdOrder;
     }
 }

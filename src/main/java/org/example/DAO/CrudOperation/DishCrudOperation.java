@@ -12,6 +12,7 @@ import java.util.logging.Logger;
 
 public class DishCrudOperation implements CrudOperation<Dish> {
     private ConnectionDataBase dataSource = new ConnectionDataBase();
+    private CommonCrudOperations commonCrudOperations = new CommonCrudOperations();
     Logger logger = Logger.getLogger(DishCrudOperation.class.getName());
 
     @Override
@@ -104,7 +105,7 @@ public class DishCrudOperation implements CrudOperation<Dish> {
                         resultSet.getString("id"),
                         resultSet.getString("name"),
                         resultSet.getInt("unit_price"),
-                        getIngredientWithQuantity(id)
+                        commonCrudOperations.getDishIngredient(id)
                 );
                 return dish;
             }
@@ -112,6 +113,28 @@ public class DishCrudOperation implements CrudOperation<Dish> {
             throw new RuntimeException(e);
         }
         return d;
+    }
+
+    public Dish findById(String id, LocalDateTime dateTime) {
+        String sql = "SELECT id, name, unit_price FROM dish WHERE id = ?";
+        try(Connection connection = dataSource.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql)){
+            statement.setString(1, id);
+            try(ResultSet resultSet = statement.executeQuery()){
+                if(resultSet.next()){
+                    Dish dish = new Dish(
+                            resultSet.getString("id"),
+                            resultSet.getString("name"),
+                            resultSet.getInt("unit_price"),
+                            commonCrudOperations.getDishIngredient(id, dateTime)
+                    );
+                    return dish;
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return null;
     }
 
     @Override
@@ -196,157 +219,22 @@ public class DishCrudOperation implements CrudOperation<Dish> {
     }
 
     @Override
-     public void deleteById(String id) {
-         String sql = "delete from dish where id=?";
+    public void deleteById(String id) {
+        String sql = "delete from dish where id=?";
 
-         try (Connection connection = dataSource.getConnection();
-              PreparedStatement statement = connection.prepareStatement(sql)) {
-             logger.info("Executing query: " + sql);
-             statement.setString(1, id);
-             int rowsAffected = statement.executeUpdate();
-
-             if (rowsAffected > 0) {
-                 logger.info("Dish with id " + id + " has been deleted.");
-             } else {
-                 logger.warning("No dish found with id " + id + ".");
-             }
-         } catch (SQLException e) {
-             throw new RuntimeException("Error deleting dish with id " + id, e);
-         }
-     }
-
-
-    public Ingredient findIngredientById(String id) {
-        String sql = "SELECT id, name, unity FROM ingredient WHERE id = ?";
-        try(Connection connection = dataSource.getConnection();
-            PreparedStatement statement = connection.prepareStatement(sql);){
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            logger.info("Executing query: " + sql);
             statement.setString(1, id);
-            try(ResultSet resultSet = statement.executeQuery();){
-                if(resultSet.next()){
-                    IngredientPrice ingredientPrice = getIngredientPrice(resultSet.getString("id"));
-                    Ingredient ingredient = new Ingredient(
-                            resultSet.getString("id"),
-                            resultSet.getString("name"),
-                            ingredientPrice.getDate(),
-                            ingredientPrice.getUnitPrice(),
-                            Unity.valueOf(resultSet.getString("unity"))
-                    );
-                    return ingredient;
-                }
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-        return null;
-    }
+            int rowsAffected = statement.executeUpdate();
 
-    public Ingredient findIngredientById(String id, LocalDateTime dateTime) {
-        String sql = "SELECT id, name, unity FROM ingredient WHERE id = ?";
-        try(Connection connection = dataSource.getConnection();
-            PreparedStatement statement = connection.prepareStatement(sql);){
-            statement.setString(1, id);
-            try(ResultSet resultSet = statement.executeQuery();){
-                if(resultSet.next()){
-                    IngredientPrice ingredientPrice = getIngredientPrice(resultSet.getString("id"), dateTime);
-                    Ingredient ingredient = new Ingredient(
-                            resultSet.getString("id"),
-                            resultSet.getString("name"),
-                            ingredientPrice.getDate(),
-                            ingredientPrice.getUnitPrice(),
-                            Unity.valueOf(resultSet.getString("unity"))
-                    );
-                    return ingredient;
-                }
+            if (rowsAffected > 0) {
+                logger.info("Dish with id " + id + " has been deleted.");
+            } else {
+                logger.warning("No dish found with id " + id + ".");
             }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-        return null;
-    }
-
-    public IngredientPrice getIngredientPrice(String ingredient_id){
-        String sql = "SELECT price, date FROM ingredient_price_history WHERE ingredient_id = ? AND date <= CURRENT_DATE ORDER BY date DESC LIMIT 1";
-        try(Connection connection = dataSource.getConnection();
-            PreparedStatement statement = connection.prepareStatement(sql)){
-            statement.setString(1, ingredient_id);
-            try(ResultSet resultSet = statement.executeQuery();){
-                if(resultSet.next()){
-                    IngredientPrice ingredientPrice = new IngredientPrice(
-                            resultSet.getInt("price"),
-                            resultSet.getTimestamp("date").toLocalDateTime()
-                    );
-                    return ingredientPrice;
-                }
-                return null;
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Error deleting dish with id " + id, e);
         }
     }
-    public IngredientPrice getIngredientPrice(String ingredient_id, LocalDateTime dateTime){
-        String sql = "SELECT price, date FROM ingredient_price_history WHERE ingredient_id = ? AND date <= ? ORDER BY date DESC LIMIT 1";
-        try(Connection connection = dataSource.getConnection();
-            PreparedStatement statement = connection.prepareStatement(sql)){
-            statement.setString(1, ingredient_id);
-            statement.setTimestamp(2, Timestamp.valueOf(dateTime));
-            try(ResultSet resultSet = statement.executeQuery();){
-                if(resultSet.next()){
-                    IngredientPrice ingredientPrice = new IngredientPrice(
-                            resultSet.getInt("price"),
-                            resultSet.getTimestamp("date").toLocalDateTime()
-                    );
-                    return ingredientPrice;
-                }
-                return null;
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public List<DishIngredient> getIngredientWithQuantity(String id_dish) {
-        List<DishIngredient> ingredientsWithQuantityList = new ArrayList<>();
-        String sql = "SELECT ingredient_id, quantity, unity FROM dish_ingredient WHERE dish_id = ?";
-        try(Connection connection = dataSource.getConnection();
-            PreparedStatement statement = connection.prepareStatement(sql)){
-            statement.setString(1, id_dish);
-            try(ResultSet resultSet = statement.executeQuery()){
-                while (resultSet.next()){
-                    Ingredient ingredient = findIngredientById(resultSet.getString("ingredient_id"));
-                    DishIngredient ingredientWithQuantity = new DishIngredient(
-                            ingredient,
-                            resultSet.getDouble("quantity"),
-                            Unity.valueOf(resultSet.getString("unity"))
-                    );
-                    ingredientsWithQuantityList.add(ingredientWithQuantity);
-                }
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-        return ingredientsWithQuantityList;
-    }
-    public List<DishIngredient> getIngredientWithQuantity(String id_dish, LocalDateTime dateTime) {
-        List<DishIngredient> ingredientsWithQuantityList = new ArrayList<>();
-        String sql = "SELECT ingredient_id, quantity, unity FROM dish_ingredient WHERE dish_id = ?";
-        try(Connection connection = dataSource.getConnection();
-            PreparedStatement statement = connection.prepareStatement(sql)){
-            statement.setString(1, id_dish);
-            try(ResultSet resultSet = statement.executeQuery()){
-                while (resultSet.next()){
-                    Ingredient ingredient = findIngredientById(resultSet.getString("ingredient_id"), dateTime);
-                    DishIngredient ingredientWithQuantity = new DishIngredient(
-                            ingredient,
-                            resultSet.getDouble("quantity"),
-                            Unity.valueOf(resultSet.getString("unity"))
-                    );
-                    ingredientsWithQuantityList.add(ingredientWithQuantity);
-                }
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-        return ingredientsWithQuantityList;
-    }
-
 }
