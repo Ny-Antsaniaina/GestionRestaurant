@@ -45,7 +45,7 @@ public class OrderCrudOperation implements CrudOperation<Order> {
 
     @Override
     public Order findById(String id) {
-        String sql = "SELECT id, created_at, status FROM customer_order WHERE id = ?";
+        String sql = "SELECT id,  satus ,create_at FROM orders WHERE id = ?";
 
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -56,8 +56,8 @@ public class OrderCrudOperation implements CrudOperation<Order> {
             if (resultSet.next()) {
                 Order order = new Order();
                 order.setId(resultSet.getString("id"));
-                order.setCreatedAt(resultSet.getTimestamp("created_at").toLocalDateTime());
-                order.setStatus(StatusEnum.valueOf(resultSet.getString("status")));
+                order.setStatus(StatusEnum.valueOf(resultSet.getString("satus")));
+                order.setCreatedAt(resultSet.getTimestamp("create_at").toLocalDateTime());
                 order.setDishOrders(getDishOrdersForOrder(order.getId()));
                 return order;
             }
@@ -146,7 +146,7 @@ public class OrderCrudOperation implements CrudOperation<Order> {
                 while(resultSet.next()){
                     DishOrder dishOrder = new DishOrder(
                             resultSet.getString("id"),
-                            commonCrudOperations.findDishById(resultSet.getString("id_dish")),
+                            commonCrudOperations.findDishById(resultSet.getString("dish_id")),
                             resultSet.getInt("quantity"),
                             findByDishOrderId(resultSet.getString("id"))
                     );
@@ -283,7 +283,7 @@ public class OrderCrudOperation implements CrudOperation<Order> {
 
     public Order addOrder(Order order) {
         Order createdOrder = null;
-        String orderSql = "INSERT INTO orders (id, status, date) VALUES (?, DEFAULT, DEFAULT) RETURNING id";
+        String orderSql = "INSERT INTO orders (id, satus, create_at) VALUES (?, DEFAULT, DEFAULT) RETURNING id";
 
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(orderSql)) {

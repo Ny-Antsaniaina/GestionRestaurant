@@ -170,7 +170,7 @@ public class CommonCrudOperations {
 
     public List<DishOrderStatusHistory> findByDishOrderId(String id) {
         List<DishOrderStatusHistory> dishOrderStatusHistoryList = new ArrayList<>();
-        String sql = "SELECT id, status, date FROM dish_order_status_history WHERE id_dish_order = ?";
+        String sql = "SELECT id, status, changed_at FROM dish_order_status_history WHERE dish_order_id = ?";
         try(Connection connection = dataSource.getConnection();
             PreparedStatement statement = connection.prepareStatement(sql)){
             statement.setString(1, id);
@@ -179,7 +179,7 @@ public class CommonCrudOperations {
                     DishOrderStatusHistory dishOrderStatusHistory = new DishOrderStatusHistory(
                             resultSet.getString("id"),
                             StatusEnum.valueOf(resultSet.getString("status")),
-                            resultSet.getTimestamp("date").toLocalDateTime()
+                            resultSet.getTimestamp("changed_at").toLocalDateTime()
                     );
                     dishOrderStatusHistoryList.add(dishOrderStatusHistory);
                 }

@@ -68,7 +68,31 @@ public class DishOrderCrudOperation implements CrudOperation<DishOrder> {
     }
 
     @Override
-    public List<DishOrder> saveAll(List<DishOrder> list) {throw new RuntimeException("not implemented");
+    public List<DishOrder> saveAll(List<DishOrder> list) {
+        List<DishOrder> dishOrders = new ArrayList<>();
+        String sql = "INSERT INTO dish_order (id, order_id, dish_id, quantity) VALUES (?, ?, ?, ?)";
+
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            for (DishOrder dishOrder : list) {
+                statement.setString(1, dishOrder.getId());
+                statement.setString(2, dishOrder.getOrder().getId());
+                statement.setString(3, dishOrder.getDish().getId());
+                statement.setDouble(4, dishOrder.getQuantity());
+                statement.addBatch();
+            }
+
+            statement.executeBatch();
+
+            for (DishOrder dishOrder : list) {
+                dishOrders.add(findById(dishOrder.getId()));
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return dishOrders;
     }
 
     @Override

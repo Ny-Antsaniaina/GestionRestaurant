@@ -36,10 +36,10 @@ public class OrderTest {
     @Test
     public void addOrderDish(){
         DishCrudOperation dishDAO = new DishCrudOperation();
-        Order order = new Order("5");
+        Order order = new Order("9");
         order.addOrderDish(List.of(
-                new DishOrder("6", dishDAO.findById("1"), 2),
-                new DishOrder("7", dishDAO.findById("1"), 1)
+                new DishOrder("8", dishDAO.findById("1"), 2),
+                new DishOrder("9", dishDAO.findById("1"), 1)
         ));
     }
 }
